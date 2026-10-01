@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>席替えアプリ</title>
+    <title>席替えアプリ (44席バージョン)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -21,7 +21,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             text-align: center;
-            max-width: 600px;
+            max-width: 700px; /* 列が増えたため横幅を拡張 */
             width: 100%;
         }
 
@@ -65,19 +65,27 @@
             transform: scale(0.98);
         }
 
-        /* 教室の座席レイアウト (グリッドシステム) */
-        .classroom-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 60px); /* 横6列 */
-            gap: 10px;
+        /* 教室の座席レイアウト (6つの縦列を並べるコンテナ) */
+        .classroom-layout {
+            display: flex;
             justify-content: center;
+            gap: 15px; /* 縦列どうしの間隔 */
             margin-top: 10px;
+            overflow-x: auto; /* 万が一画面幅が狭い場合は横スクロール可能に */
+            padding-bottom: 10px;
+        }
+
+        /* 各縦列（カラム）のスタイル */
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* 席の縦の間隔 */
         }
 
         /* 席（マス目）の基本スタイル */
         .seat {
-            width: 60px;
-            height: 60px;
+            width: 55px;
+            height: 55px;
             background-color: #e9ecef;
             border: 2px solid #dee2e6;
             border-radius: 6px;
@@ -98,12 +106,6 @@
             animation: popIn 0.3s ease;
         }
 
-        /* 最後の行（5マス）を中央に寄せるための調整 */
-        .seat.hidden {
-            visibility: hidden;
-            pointer-events: none;
-        }
-
         @keyframes popIn {
             0% { transform: scale(0.8); opacity: 0.5; }
             100% { transform: scale(1); opacity: 1; }
@@ -121,56 +123,67 @@
         <button class="btn-start" id="startBtn">スタート</button>
     </div>
 
-    <!-- 座席（マス目）エリア -->
-    <div class="classroom-grid" id="classroom">
-        <!-- JavaScriptで自動生成します -->
+    <!-- 座席エリア：6つの縦列を配置 -->
+    <div class="classroom-layout">
+        <div class="column" id="col1"></div> <!-- 1列目 (7席) -->
+        <div class="column" id="col2"></div> <!-- 2列目 (7席) -->
+        <div class="column" id="col3"></div> <!-- 3列目 (8席) -->
+        <div class="column" id="col4"></div> <!-- 4列目 (8席) -->
+        <div class="column" id="col5"></div> <!-- 5列目 (8席) -->
+        <div class="column" id="col6"></div> <!-- 6列目 (6席) -->
     </div>
 </div>
 
 <script>
-    // 設計図の形（1〜7行目：6マス、8行目：左側5マス＋右端1マス空白 ＝ 計47マス分で制御）
-    // 41番目の要素（8行目の右端）を空白(hidden)にすることで、合計41マスの変則レイアウトを作ります。
-    const totalSlots = 42; 
-    const hiddenIndex = 41; // 0から数えて41番目（最後のマス）を非表示にする
+    // 各列の席数を左から順に定義
+    const columnSizes =; 
+    const totalSeats = 44; // 合計44席
 
-    const classroom = document.getElementById('classroom');
-    const startBtn = document.getElementById('startBtn');
+    // 各列のHTML要素を取得
+    const columns = [
+        document.getElementById('col1'),
+        document.getElementById('col2'),
+        document.getElementById('col3'),
+        document.getElementById('col4'),
+        document.getElementById('col5'),
+        document.getElementById('col6')
+    ];
     
-    // 座席の要素を格納する配列
+    const startBtn = document.getElementById('startBtn');
     let seatElements = [];
 
     // 初期状態の座席（マス目）を作成
     function initClassroom() {
-        classroom.innerHTML = '';
         seatElements = [];
         
-        for (let i = 0; i < totalSlots; i++) {
-            const seat = document.createElement('div');
-            
-            // 8行目の右端だけ非表示（画像通りの凸型レイアウトを再現）
-            if (i === hiddenIndex) {
-                seat.className = 'seat hidden';
-            } else {
+        // 一度各列を空にする
+        columns.forEach(col => col.innerHTML = '');
+
+        // 左の列から順番に指定された数だけ席を配置
+        columnSizes.forEach((size, colIndex) => {
+            for (let i = 0; i < size; i++) {
+                const seat = document.createElement('div');
                 seat.className = 'seat';
                 seat.textContent = ''; // 最初は空欄
-                seatElements.push(seat); // 有効な41マスを配列に追加
+                
+                columns[colIndex].appendChild(seat);
+                seatElements.push(seat); // 全44席の要素を配列にまとめる
             }
-            classroom.appendChild(seat);
-        }
+        });
     }
 
     // 席替えを実行する関数
     function shuffleSekigae() {
-        // 1から41までの数字の配列を作成
-        const numbers = Array.from({ length: 41 }, (_, i) => i + 1);
+        // 1から44までの数字の配列を作成
+        const numbers = Array.from({ length: totalSeats }, (_, i) => i + 1);
         
-        // フィッシャー・イェーツのシャッフルアルゴリズムでランダムに入れ替え
+        // フィッシャー・イェーツのシャッフルアルゴリズム
         for (let i = numbers.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
         }
 
-        // シャッフルした数字を各マス目に表示
+        // シャッフルした数字（1〜44）を各マス目に表示
         seatElements.forEach((seat, index) => {
             seat.textContent = numbers[index];
             seat.classList.add('filled');
@@ -179,9 +192,7 @@
 
     // ボタンクリック時のイベント
     startBtn.addEventListener('click', () => {
-        // 一度綺麗にしてからシャッフル
         initClassroom();
-        // 少しだけ演出っぽく遅らせて表示
         setTimeout(shuffleSekigae, 100);
     });
 
